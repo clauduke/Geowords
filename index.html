@@ -1,0 +1,71 @@
+<!doctype html><html lang='es'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover'><meta name='apple-mobile-web-app-capable' content='yes'><meta name='theme-color' content='#f4f1e8'><title>GeoWords v3</title><link rel='manifest' href='manifest.webmanifest'><link rel='apple-touch-icon' href='icon-192.png'><style>
+:root{--bg:#f4f1e8;--card:#fff;--ink:#17201b;--muted:#667069;--line:#d9ddd7;--accent:#1d5a42;--soft:#e7efe9}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}header{padding:18px 22px 10px;display:flex;align-items:end;justify-content:space-between}h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px}.app{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;padding:10px 14px 18px;height:calc(100vh - 72px)}.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 2px 10px #0000000a}.pdfbar,.toolbar{padding:12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}button,.filebtn{border:0;border-radius:10px;padding:9px 12px;background:var(--accent);color:#fff;font-weight:650;cursor:pointer}.secondary{background:var(--soft);color:var(--accent)}input,textarea,select{font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;color:var(--ink)}#pdf{width:100%;height:calc(100% - 58px);border:0;background:#eee}.right{display:flex;flex-direction:column}.add{padding:12px;border-bottom:1px solid var(--line)}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.row3{display:grid;grid-template-columns:1fr 1fr auto;gap:8px}.add textarea{width:100%;height:56px;resize:vertical;margin-bottom:8px}.listhead{padding:10px 12px;display:flex;gap:8px;border-bottom:1px solid var(--line)}#search{flex:1}.words{overflow:auto;flex:1}.word{padding:11px 12px;border-bottom:1px solid #edf0ed;display:grid;grid-template-columns:1fr auto;gap:8px}.term{font-weight:750}.trans{margin-top:3px}.note{font-size:12px;color:var(--muted);margin-top:5px}.badge{font-size:11px;background:var(--soft);color:var(--accent);padding:4px 7px;border-radius:999px;white-space:nowrap;height:max-content}.actions{margin-top:7px;display:flex;gap:6px}.actions button{padding:5px 8px;font-size:11px}.empty{padding:30px;text-align:center;color:var(--muted)}@media(max-width:760px){.app{grid-template-columns:1fr;height:auto}.panel{min-height:70vh}#pdf{height:65vh}.right{min-height:70vh}}@media print{header,.left,.add,.listhead,.actions{display:none}.app{display:block}.panel{border:0;box-shadow:none}.word{break-inside:avoid}}
+</style></head><body><header><div><h1>GeoWords <span style='font-size:13px;color:var(--muted)'>v3</span></h1><div class='sub'>Diccionario personal de Geomecánica · Inglés → Español</div></div><div class='sub' id='count'></div></header><main class='app'><section class='panel left'><div class='pdfbar'><label class='filebtn'>Abrir PDF<input id='pdfInput' type='file' accept='application/pdf' hidden></label><button class='secondary' id='clearPdf'>Cerrar PDF</button><span class='sub'>Tu PDF no se sube a ningún servidor.</span></div><iframe id='pdf' title='PDF'></iframe></section><section class='panel right'><div class='add'><div class='row'><input id='en' placeholder='English term / phrase' autocapitalize='none'><input id='es' placeholder='Español técnico'></div><div style='display:flex;gap:8px;margin:-1px 0 8px'><button id='translate'>Traducir automáticamente</button><span class='sub' id='tstatus' style='align-self:center'></span></div><textarea id='note' placeholder='Significado, contexto o ejemplo (opcional)'></textarea><div class='row3'><select id='cat'><option>Geomecánica</option><option>Minería</option><option>Geología</option><option>General</option></select><select id='status'><option>Nueva</option><option>Aprendiendo</option><option>Dominada</option></select><button id='save'>Guardar</button></div></div><div class='listhead'><input id='search' placeholder='Buscar en mi diccionario'><button class='secondary' id='export'>Exportar CSV</button></div><div class='words' id='words'></div></section></main><script>
+const technical={
+'rock mass':['macizo rocoso','Conjunto de roca intacta y discontinuidades.','Geomecánica'],
+'intact rock':['roca intacta','Roca sin considerar el efecto de las discontinuidades.','Geomecánica'],
+'joint':['diaclasa','Discontinuidad sin desplazamiento apreciable.','Geomecánica'],
+'discontinuity':['discontinuidad','Plano o superficie de debilidad en el macizo rocoso.','Geomecánica'],
+'dip':['manteo','Ángulo de inclinación de un plano geológico.','Geología'],
+'dip direction':['dirección de manteo','Dirección hacia la cual inclina un plano.','Geología'],
+'strike':['rumbo','Dirección horizontal de un plano geológico.','Geología'],
+'shear strength':['resistencia al corte','Capacidad de resistir esfuerzos de corte.','Geomecánica'],
+'shear stress':['esfuerzo cortante','Esfuerzo que actúa tangencialmente sobre un plano.','Geomecánica'],
+'normal stress':['esfuerzo normal','Esfuerzo perpendicular a un plano.','Geomecánica'],
+'wedge failure':['falla en cuña','Falla controlada por la intersección de discontinuidades.','Geomecánica'],
+'planar failure':['falla planar','Deslizamiento a lo largo de una discontinuidad aproximadamente planar.','Geomecánica'],
+'toppling failure':['falla por volcamiento','Rotación o volcamiento de bloques o columnas de roca.','Geomecánica'],
+'slope':['talud / pendiente','En geotecnia suele referirse al talud; depende del contexto.','Geomecánica'],
+'rock slope':['talud rocoso','Talud constituido principalmente por roca.','Geomecánica'],
+'bench':['banco','Escalón de explotación o de un talud minero.','Minería'],
+'berm':['berma','Franja horizontal entre bancos o junto a una vía.','Minería'],
+'footwall':['muro','Bloque de roca situado bajo una estructura o cuerpo mineralizado inclinado.','Geología'],
+'hanging wall':['techo','Bloque de roca situado sobre una estructura o cuerpo mineralizado inclinado.','Geología'],
+'fault':['falla','Discontinuidad con desplazamiento relativo.','Geología'],
+'fracture':['fractura','Ruptura de la roca.','Geología'],
+'joint set':['familia de diaclasas','Grupo de diaclasas con orientación similar.','Geomecánica'],
+'roughness':['rugosidad','Irregularidad de la superficie de una discontinuidad.','Geomecánica'],
+'aperture':['abertura','Separación perpendicular entre paredes de una discontinuidad.','Geomecánica'],
+'infill':['relleno','Material presente entre las paredes de una discontinuidad.','Geomecánica'],
+'weathering':['meteorización','Alteración de la roca por procesos físicos o químicos.','Geología'],
+'groundwater':['agua subterránea','Agua presente bajo la superficie del terreno.','Geología'],
+'rock quality designation':['índice de calidad de roca (RQD)','Porcentaje de testigo sano en trozos de 10 cm o más, según el método RQD.','Geomecánica'],
+'uniaxial compressive strength':['resistencia a la compresión uniaxial','Resistencia máxima bajo carga compresiva uniaxial.','Geomecánica'],
+'young modulus':['módulo de Young','Relación entre esfuerzo y deformación elástica axial.','Geomecánica'],
+"young's modulus":['módulo de Young','Relación entre esfuerzo y deformación elástica axial.','Geomecánica'],
+'poisson ratio':['coeficiente de Poisson','Relación entre deformación transversal y axial.','Geomecánica'],
+'cohesion':['cohesión','Componente de resistencia al corte independiente del esfuerzo normal en modelos tipo Mohr-Coulomb.','Geomecánica'],
+'friction angle':['ángulo de fricción','Parámetro de resistencia al corte asociado a la fricción.','Geomecánica'],
+'factor of safety':['factor de seguridad','Relación entre resistencia disponible y demanda movilizada.','Geomecánica'],
+'failure criterion':['criterio de falla','Relación usada para representar las condiciones de falla del material.','Geomecánica'],
+'hoek-brown criterion':['criterio de Hoek-Brown','Criterio empírico de resistencia para roca intacta y macizos rocosos.','Geomecánica'],
+'mohr-coulomb criterion':['criterio de Mohr-Coulomb','Modelo lineal de resistencia al corte basado en cohesión y fricción.','Geomecánica'],
+'rock bolt':['perno de roca','Elemento de sostenimiento instalado en la roca.','Minería'],
+'shotcrete':['hormigón proyectado','Hormigón aplicado neumáticamente sobre una superficie.','Minería'],
+'ground support':['sostenimiento','Elementos o sistemas usados para estabilizar excavaciones.','Minería'],
+'stress':['esfuerzo','Fuerza interna por unidad de área.','Geomecánica'],
+'strain':['deformación unitaria','Cambio relativo de dimensión producido por esfuerzos.','Geomecánica'],
+'principal stress':['esfuerzo principal','Esfuerzo normal sobre un plano donde el esfuerzo cortante es cero.','Geomecánica'],
+'rock mechanics':['mecánica de rocas','Estudio del comportamiento mecánico de la roca y los macizos rocosos.','Geomecánica']
+};
+const seed=[['rock mass','macizo rocoso','Conjunto de roca intacta y discontinuidades.','Geomecánica'],['intact rock','roca intacta','Roca considerada sin el efecto de discontinuidades.','Geomecánica'],['joint','diaclasa','Discontinuidad sin desplazamiento apreciable.','Geomecánica'],['dip','manteo','Ángulo de inclinación de un plano geológico.','Geología'],['strike','rumbo','Dirección horizontal de un plano geológico.','Geología'],['shear strength','resistencia al corte','Resistencia del material frente al deslizamiento.','Geomecánica'],['wedge failure','falla en cuña','Falla controlada por la intersección de discontinuidades.','Geomecánica'],['slope','talud / pendiente','Usar según el contexto geotécnico.','Geomecánica']];
+let words=JSON.parse(localStorage.getItem('geowords')||'null')||seed.map((x,i)=>({id:Date.now()+i,en:x[0],es:x[1],note:x[2],cat:x[3],status:'Nueva'}));
+const $=id=>document.getElementById(id); function persist(){localStorage.setItem('geowords',JSON.stringify(words));render()}
+function esc(s=''){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function render(){const q=$('search').value.trim().toLowerCase();const list=words.filter(w=>(w.en+' '+w.es+' '+w.note).toLowerCase().includes(q)).sort((a,b)=>a.en.localeCompare(b.en));$('count').textContent=words.length+' términos guardados';$('words').innerHTML=list.length?list.map(w=>`<div class='word'><div><div class='term'>${esc(w.en)}</div><div class='trans'>${esc(w.es)}</div>${w.note?`<div class='note'>${esc(w.note)}</div>`:''}<div class='actions'><button class='secondary' onclick='cycle(${w.id})'>${esc(w.status)}</button><button class='secondary' onclick='editWord(${w.id})'>Editar</button><button class='secondary' onclick='del(${w.id})'>Eliminar</button></div></div><span class='badge'>${esc(w.cat)}</span></div>`).join(''):`<div class='empty'>Aún no hay términos.</div>`}
+async function translateTerm(){
+ const en=$('en').value.trim(); if(!en){$('en').focus();return;}
+ const key=en.toLowerCase().replace(/\s+/g,' '); const hit=technical[key];
+ if(hit){$('es').value=hit[0];$('note').value=hit[1];$('cat').value=hit[2];$('tstatus').textContent='Traducción técnica local';return;}
+ $('tstatus').textContent='Traduciendo…';
+ try{const u='https://api.mymemory.translated.net/get?q='+encodeURIComponent(en)+'&langpair=en|es';const r=await fetch(u);if(!r.ok)throw new Error();const d=await r.json();const tr=d?.responseData?.translatedText;if(!tr)throw new Error();$('es').value=tr;$('tstatus').textContent='Traducción general, conviene revisar términos técnicos';}
+ catch(e){$('tstatus').textContent='No pude traducir. Revisa tu conexión o escribe la traducción.';}
+}
+$('translate').onclick=translateTerm; $('en').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();translateTerm()}});
+$('save').onclick=()=>{let en=$('en').value.trim(),es=$('es').value.trim();if(!en||!es)return alert('Escribe el término en inglés y su traducción.');words.push({id:Date.now(),en,es,note:$('note').value.trim(),cat:$('cat').value,status:$('status').value});$('en').value=$('es').value=$('note').value='';persist();$('en').focus()};$('search').oninput=render;
+window.del=id=>{if(confirm('¿Eliminar este término?')){words=words.filter(w=>w.id!==id);persist()}};window.cycle=id=>{const w=words.find(x=>x.id===id),s=['Nueva','Aprendiendo','Dominada'];w.status=s[(s.indexOf(w.status)+1)%3];persist()};window.editWord=id=>{const w=words.find(x=>x.id===id);$('en').value=w.en;$('es').value=w.es;$('note').value=w.note;$('cat').value=w.cat;$('status').value=w.status;words=words.filter(x=>x.id!==id);persist();scrollTo({top:0,behavior:'smooth'})};
+$('export').onclick=()=>{const rows=[['English','Español técnico','Nota','Categoría','Estado'],...words.map(w=>[w.en,w.es,w.note,w.cat,w.status])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='GeoWords.csv';a.click()};
+$('pdfInput').onchange=e=>{const f=e.target.files[0];if(f){const old=$('pdf').dataset.url;if(old)URL.revokeObjectURL(old);const u=URL.createObjectURL(f);$('pdf').src=u;$('pdf').dataset.url=u}};$('clearPdf').onclick=()=>{$('pdf').src='';$('pdfInput').value=''};render();
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script></body></html>
